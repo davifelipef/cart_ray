@@ -146,63 +146,85 @@ class _HomePageState extends State<HomePage> {
           right: 15
         ),
         child: SingleChildScrollView(
-          child: Column(
-            children: <Widget>[
-              TextField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  hintText: "Nome do registro"
-                ),
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              TextField(
-                controller: _typeController,
-                decoration: const InputDecoration(
-                  hintText: "Tipo de registro"
-                ),
-              ),
-              TextField(
-                controller: _valueController,
-                decoration: const InputDecoration(
-                  hintText: "Valor"
-                ),
-              ),
-              const SizedBox(
-                height: 20,
-              ),
-              ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                                backgroundColor: primaryButton,
-                                foregroundColor: primaryBackground,
-                              ),
-                onPressed: () async {
-                  if (itemKey == null) {
-                    _createItem({
-                      "name": _nameController.text,
-                      "type": _typeController.text,
-                      "value": _valueController.text,
-                    });
-                  }
-                  if (itemKey != null) {
-                    _updateItem(itemKey, {
-                      "name": _nameController.text.trim(),
-                      "type": _typeController.text,
-                      "value": _valueController.text.trim()
-                    });
-                  }
-                  //Clear the text fields
-                  _nameController.text = "";
-                  _typeController.text = "";
-                  _valueController.text = "";
-                  // Closes the modal window
-                  Navigator.of(context).pop(); 
-                }, 
-                child: const Text("Salvar"),
-              ),
-            ],
-            ),
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              String? selectedType;
+              final List<String> typeOptions = ['Option 1', 'Option 2'];
+              return Column(
+                children: <Widget>[
+                  TextField(
+                    controller: _nameController,
+                    decoration: const InputDecoration(
+                      hintText: "Nome do registro"
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  // Creates the dropdown menu
+                  DropdownButtonFormField<String>(
+                    decoration: const InputDecoration(
+                      hintText: "Tipo de registro",
+                      border: OutlineInputBorder(),
+                    ),
+                    value: selectedType,
+                    items: typeOptions.map((String value) {
+                      return DropdownMenuItem<String>(
+                        value: value,
+                        child: Text(value),
+                      );
+                    }).toList(),
+                    onChanged: (newValue) {
+                      setState(() {
+                        selectedType = newValue;
+                      });
+                    },
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  TextField(
+                    controller: _valueController,
+                    decoration: const InputDecoration(
+                      hintText: "Valor"
+                    ),
+                  ),
+                  const SizedBox(
+                    height: 20,
+                  ),
+                  ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                                    backgroundColor: primaryButton,
+                                    foregroundColor: primaryBackground,
+                                  ),
+                    onPressed: () async {
+                      if (itemKey == null) {
+                        _createItem({
+                          "name": _nameController.text,
+                          "type": _typeController.text,
+                          "value": _valueController.text,
+                        });
+                      }
+                      if (itemKey != null) {
+                        _updateItem(itemKey, {
+                          "name": _nameController.text.trim(),
+                          "type": _typeController.text,
+                          "value": _valueController.text.trim()
+                        });
+                      }
+                      //Clear the text fields
+                      _nameController.text = "";
+                      _typeController.text = "";
+                      _valueController.text = "";
+                      // Closes the modal window
+                      Navigator.of(context).pop(); 
+                    }, 
+                    child: const Text("Salvar"),
+                  ),
+                ],
+                );
+            }
+          ),
         ),
         ),
         );
