@@ -1,4 +1,2 @@
-2024/06/05-15:20:36.562 2ce4 Reusing MANIFEST C:\Users\davir\AppData\Local\Temp\flutter_tools.95bdc6e\flutter_tools_chrome_device.811c2cf8\Default\Site Characteristics Database/MANIFEST-000001
-2024/06/05-15:20:36.565 2ce4 Recovering log #6
-2024/06/05-15:20:36.565 2ce4 Reusing old log C:\Users\davir\AppData\Local\Temp\flutter_tools.95bdc6e\flutter_tools_chrome_device.811c2cf8\Default\Site Characteristics Database/000006.log 
-2024/06/05-15:20:36.566 2ce4 Delete type=0 #3
+2024/06/05-22:02:18.434 5688 Creating DB C:\Users\davir\AppData\Local\Temp\flutter_tools.7850774\flutter_tools_chrome_device.9d0bf635\Default\Site Characteristics Database since it was missing.
+2024/06/05-22:02:18.553 5688 Reusing MANIFEST C:\Users\davir\AppData\Local\Temp\flutter_tools.7850774\flutter_tools_chrome_device.9d0bf635\Default\Site Characteristics Database/MANIFEST-000001

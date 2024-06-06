@@ -18,6 +18,8 @@ class _HomePageState extends State<HomePage> {
   // Text fields setup variables
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _typeController = TextEditingController();
+  String? selectedType;
+  final List<String> typeOptions = ['Entrada', 'Saída'];
   final TextEditingController _valueController = TextEditingController();
 
   // Hive related setup 
@@ -38,6 +40,8 @@ class _HomePageState extends State<HomePage> {
   final pageBackground = Colors.blue.shade100;
   final primaryButton = Colors.black;
   final primaryBackground = Colors.white;
+  final cardGreen = Colors.green.shade100;
+  final cardRed = Colors.red.shade100;
 
   // App programming logic STARTS here
   @override
@@ -124,15 +128,14 @@ class _HomePageState extends State<HomePage> {
   void _showForm(BuildContext ctx, int? itemKey) async {
     
     if (itemKey != null) {
-      final existingItem = 
-      _events.firstWhere((element) => element["key"] == itemKey);
+      final existingItem = _events.firstWhere((element) => element["key"] == itemKey);
       _nameController.text = existingItem["name"];
-      _typeController.text = existingItem["type"];
-      _valueController.text = existingItem["type"];
+      selectedType = existingItem["type"];
+      _valueController.text = existingItem["value"];
     } else {
-      //Clear the text fields
+      // Clear the text fields
       _nameController.text = "";
-      _typeController.text = "";
+      selectedType = null;
       _valueController.text = "";
     }
     
@@ -148,8 +151,6 @@ class _HomePageState extends State<HomePage> {
         child: SingleChildScrollView(
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
-              String? selectedType;
-              final List<String> typeOptions = ['Option 1', 'Option 2'];
               return Column(
                 children: <Widget>[
                   TextField(
@@ -177,6 +178,14 @@ class _HomePageState extends State<HomePage> {
                     onChanged: (newValue) {
                       setState(() {
                         selectedType = newValue;
+                        if (_valueController.text.isNotEmpty) {
+                          double currentValue = double.tryParse(_valueController.text) ?? 0.0;
+                          if (selectedType == 'Entrada' && currentValue < 0) {
+                            _valueController.text = (-currentValue).toString();
+                          } else if (selectedType == 'Saída' && currentValue > 0) {
+                            _valueController.text = (-currentValue).toString();
+                          }
+                        }
                       });
                     },
                   ),
@@ -188,6 +197,21 @@ class _HomePageState extends State<HomePage> {
                     decoration: const InputDecoration(
                       hintText: "Valor"
                     ),
+                    keyboardType: TextInputType.number,
+                    onChanged: (text) {
+                      if (text.isNotEmpty) {
+                        double currentValue = double.tryParse(text) ?? 0.0;
+                        if (selectedType == 'Entrada' && currentValue < 0) {
+                          _valueController.text = (-currentValue).toString();
+                        } else if (selectedType == 'Saída' && currentValue > 0) {
+                          _valueController.text = (-currentValue).toString();
+                        }
+                        // move cursor to end of text after modifying the value
+                        _valueController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _valueController.text.length),
+                        );
+                      }
+                    },
                   ),
                   const SizedBox(
                     height: 20,
@@ -201,14 +225,14 @@ class _HomePageState extends State<HomePage> {
                       if (itemKey == null) {
                         _createItem({
                           "name": _nameController.text,
-                          "type": _typeController.text,
+                          "type": selectedType,
                           "value": _valueController.text,
                         });
                       }
                       if (itemKey != null) {
                         _updateItem(itemKey, {
                           "name": _nameController.text.trim(),
-                          "type": _typeController.text,
+                          "type": selectedType?.trim(),
                           "value": _valueController.text.trim()
                         });
                       }
@@ -257,24 +281,12 @@ class _HomePageState extends State<HomePage> {
             margin: const EdgeInsets.all(10),
             elevation: 3,
             child: ListTile(
-              title: const Text(
-                "Rendimentos recebidos este mês:",
-                style: TextStyle(
+              title: Text(
+                "Balanço: ${sumOfEvents().toStringAsFixed(2)}",
+                style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
                 ),
-              ),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: <Widget>[
-                  Text(
-                    "Total: R\$ ${calculateTotalReceivedDividends().toStringAsFixed(2)}",
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                ),
-                  ),
-                ],
               ),
             ),
           ),
@@ -284,39 +296,15 @@ class _HomePageState extends State<HomePage> {
             itemCount: _events.length,
             itemBuilder: (_, index) {
               final currentItem = _events[index];
-              if (currentItem["value"] == null && eventsMap[currentItem["key"]] == null) {
-              }
-              final dividendValue = currentItem["value"] ?? eventsMap[currentItem["key"]] ?? "Carregando";
-              var sumDividend = double.tryParse(dividendValue.replaceAll(',', '.')) ?? 0.00;
-              var currentQuantity = double.tryParse(currentItem["type"]?.replaceAll(',', '.') ?? "0") ?? 0;
-              final dividendYield = currentItem["total"] ?? currentQuantity * sumDividend;
-
-              try {
-                if (sumDividend > 0) {
-                  Map<String, dynamic>? existingItem = _eventsBox.get(currentItem["key"]);
-                  if (existingItem != null) {
-                    existingItem.addAll({
-                      "value": dividendValue,
-                      "total": dividendYield,
-                    });
-                    _eventsBox.put(currentItem["key"], existingItem);
-                    print("$dividendValue e $dividendYield adicionados ao box com sucesso!");
-                  } else {
-                    print("Item não encontrado no banco de dados Hive.");
-                  }
-                } else {
-                  // Do nothing
-                }
-              } catch (e) {
-                print("Erro ao salvar os valores do dividendo na Hive: $e");
-              }
-        return Card(
-                color: Colors.green.shade100,
+              String valueString = currentItem["value"] ?? "0.0";
+              Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
+            return Card(
+                color: cardColor,
                 margin: const EdgeInsets.all(10),
                 elevation: 3,
                 child: ListTile(
                   title: Text(
-                    currentItem["name"] ?? "Erro ao retornar o name",
+                    currentItem["name"] ?? "Erro ao retornar o nome",
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
@@ -330,7 +318,7 @@ class _HomePageState extends State<HomePage> {
                       ),
                       Align(
                         alignment: Alignment.topLeft,
-                        child: Text("Valor: R\$ ${sumDividend.toStringAsFixed(2)}"),
+                        child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
                       ),
                     ],
                   ),
@@ -368,14 +356,16 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  double calculateTotalReceivedDividends() {
+  double sumOfEvents() {
     double total = 0.0;
     for (final item in _events) {
-      final dividendValue = item["value"] ?? eventsMap[item["key"]] ?? "0.00";
-      final sumDividend = double.tryParse(dividendValue.replaceAll(',', '.')) ?? 0.00;
-      var currentQuantity = double.tryParse(item["type"]?.replaceAll(',', '.') ?? "0") ?? 0;
-      final dividendYield = currentQuantity * sumDividend;
-      total += dividendYield;
+      // Retrieve the event value
+      final eventValue = item["value"] ?? "0,00";
+      // Convert the value to a double, replacing commas with dots if necessary
+      final eventsSum = double.tryParse(eventValue.replaceAll(',', '.')) ?? 0.00;
+      // Add the value to the total sum
+      total += eventsSum;
     }
     return total;
-  }}
+  }
+}
