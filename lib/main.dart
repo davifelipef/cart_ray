@@ -18,7 +18,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      debugShowCheckedModeBanner: false, //if set to false, disables the debug banner
+      debugShowCheckedModeBanner: true, //if set to false, disables the debug banner
       home: const HomePage(),
       theme: ThemeData(
         appBarTheme: const AppBarTheme(
