@@ -22,6 +22,7 @@ class _HomePageState extends State<HomePage> {
   String? selectedType;
   final List<String> typeOptions = ['Entrada', 'Saída'];
   final TextEditingController _valueController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
 
   // Hive related setup 
   late Map<int, String> eventsMap = {};
@@ -169,108 +170,131 @@ class _HomePageState extends State<HomePage> {
     }
     
     showModalBottomSheet(
-      context: ctx, 
-      builder: (_) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(ctx).viewInsets.bottom,
-          top: 15,
-          left: 15,
-          right: 15
-        ),
-        child: SingleChildScrollView(
-          child: StatefulBuilder(
-            builder: (BuildContext context, StateSetter setState) {
-              return Column(
-                children: <Widget>[
-                  TextField(
-                    controller: _nameController,
-                    decoration: const InputDecoration(
-                      hintText: "Nome do registro"
-                    ),
+  context: ctx,
+  builder: (_) => Container(
+    padding: EdgeInsets.only(
+      bottom: MediaQuery.of(ctx).viewInsets.bottom,
+      top: 15,
+      left: 15,
+      right: 15,
+    ),
+    child: SingleChildScrollView(
+      child: StatefulBuilder(
+        builder: (BuildContext context, StateSetter setState) {
+          return Form(
+            key: _formKey,
+            child: Column(
+              children: <Widget>[
+                // Name of the event text field
+                TextFormField(
+                  controller: _nameController,
+                  decoration: const InputDecoration(
+                    hintText: "Nome do registro",
                   ),
-                  const SizedBox(
-                    height: 20,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, digite um nome para o registro.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                // Type of event dropdown menu
+                DropdownButtonFormField<String>(
+                  decoration: const InputDecoration(
+                    hintText: "Escolha um tipo de registro",
+                    border: OutlineInputBorder(),
                   ),
-                  // Creates the dropdown menu
-                  DropdownButtonFormField<String>(
-                    decoration: const InputDecoration(
-                      hintText: "Tipo de registro",
-                      border: OutlineInputBorder(),
-                    ),
-                    value: selectedType,
-                    items: typeOptions.map((String value) {
-                      return DropdownMenuItem<String>(
-                        value: value,
-                        child: Text(value),
-                      );
-                    }).toList(),
-                    onChanged: (newValue) {
-                      setState(() {
-                        selectedType = newValue;
-                        if (_valueController.text.isNotEmpty) {
-                          double currentValue = double.tryParse(_valueController.text) ?? 0.0;
-                          if (selectedType == 'Entrada' && currentValue < 0) {
-                            _valueController.text = (-currentValue).toString();
-                          } else if (selectedType == 'Saída' && currentValue > 0) {
-                            _valueController.text = (-currentValue).toString();
-                          }
+                  value: selectedType,
+                  items: typeOptions.map((String value) {
+                    return DropdownMenuItem<String>(
+                      value: value,
+                      child: Text(value),
+                    );
+                  }).toList(),
+                  onChanged: (newValue) {
+                    setState(() {
+                      selectedType = newValue;
+                      if (_valueController.text.isNotEmpty) {
+                        double currentValue = double.tryParse(_valueController.text) ?? 0.0;
+                        if (selectedType == 'Entrada' && currentValue < 0) {
+                          _valueController.text = (-currentValue).toString();
+                        } else if (selectedType == 'Saída' && currentValue > 0) {
+                          _valueController.text = (-currentValue).toString();
                         }
-                      });
-                    },
-                  ),
-                  const SizedBox(
-                    height: 20,
-                  ),
-                  TextField(
-                    controller: _valueController,
-                    decoration: const InputDecoration(
-                      hintText: "Valor",
-                    ),
-                    keyboardType: TextInputType.number,
-                    inputFormatters: [
-                      FilteringTextInputFormatter.digitsOnly, // Allow only digits
-                    ],
-                    onChanged: (text) {
-                      if (text.isEmpty) {
-                        // Set default value '0.00' if text is empty
-                        _valueController.text = '0.00';
-                        return;
                       }
-
-                      // Parse the input text as a decimal number
-                      double currentValue = double.tryParse(text) ?? 0.0;
-
-                      // Shift the decimal point for each digit entered
-                      currentValue = currentValue / 100.0;
-
-                      // Handle the logic for 'Entrada' and 'Saída'
-                      if (selectedType == 'Entrada' && currentValue < 0) {
-                        currentValue = -currentValue;
-                      } else if (selectedType == 'Saída' && currentValue > 0) {
-                        currentValue = -currentValue;
-                      }
-
-                      // Format the value to 2 decimal places
-                      String formattedText = currentValue.toStringAsFixed(2);
-
-                      // Update the text field with the formatted value
-                      _valueController.text = formattedText;
-
-                      // Move cursor to end of text after modifying the value
-                      _valueController.selection = TextSelection.fromPosition(
-                        TextPosition(offset: _valueController.text.length),
-                      );
-                    },
+                    });
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Por favor, escolha um tipo de registro.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                // Value of the event number field
+                TextFormField(
+                  controller: _valueController,
+                  decoration: const InputDecoration(
+                    hintText: "Valor",
                   ),
-                  const SizedBox(
-                    height: 20,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly, // Allow only digits
+                  ],
+                  onChanged: (text) {
+                    if (text.isEmpty) {
+                      // Set default value '0.00' if text is empty
+                      _valueController.text = '0.00';
+                      return;
+                    }
+
+                    // Parse the input text as a decimal number
+                    double currentValue = double.tryParse(text) ?? 0.0;
+
+                    // Shift the decimal point for each digit entered
+                    currentValue = currentValue / 100.0;
+
+                    // Handle the logic for 'Entrada' and 'Saída'
+                    if (selectedType == 'Entrada' && currentValue < 0) {
+                      currentValue = -currentValue;
+                    } else if (selectedType == 'Saída' && currentValue > 0) {
+                      currentValue = -currentValue;
+                    }
+
+                    // Format the value to 2 decimal places
+                    String formattedText = currentValue.toStringAsFixed(2);
+
+                    // Update the text field with the formatted value
+                    _valueController.text = formattedText;
+
+                    // Move cursor to end of text after modifying the value
+                    _valueController.selection = TextSelection.fromPosition(
+                      TextPosition(offset: _valueController.text.length),
+                    );
+                  },
+                  validator: (value) {
+                    if (value == null || value.isEmpty || value == '0.00') {
+                      return 'Por favor, informe um valor.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(
+                  height: 20,
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: primaryButton,
+                    foregroundColor: primaryBackground,
                   ),
-                  ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                                    backgroundColor: primaryButton,
-                                    foregroundColor: primaryBackground,
-                                  ),
-                    onPressed: () async {
+                  onPressed: () async {
+                    if (_formKey.currentState?.validate() ?? false) {
                       if (itemKey == null) {
                         _createItem({
                           "name": _nameController.text,
@@ -292,17 +316,19 @@ class _HomePageState extends State<HomePage> {
                       _typeController.text = "";
                       _valueController.text = "";
                       // Closes the modal window
-                      Navigator.of(context).pop(); 
-                    }, 
-                    child: const Text("Salvar"),
-                  ),
-                ],
-                );
-            }
-          ),
-        ),
-        ),
-        );
+                      Navigator.of(context).pop();
+                    }
+                  },
+                  child: const Text("Salvar"),
+                ),
+              ],
+            ),
+          );
+        },),
+      ),
+    ),
+  );
+
   }
   // App programming logic ENDS here
 
