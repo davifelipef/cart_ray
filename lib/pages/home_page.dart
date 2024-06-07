@@ -1,7 +1,8 @@
 // ignore_for_file: avoid_print
 
 import 'package:flutter/material.dart';
-import 'package:cart_ray/widgets/drawer.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:intl/intl.dart';
 
@@ -37,11 +38,15 @@ class _HomePageState extends State<HomePage> {
 
   // Layout setup variables
   final defaultIconTheme = const IconThemeData(color: Colors.white);
-  final pageBackground = Colors.blue.shade100;
+  final positiveBalanceBackground = Colors.blue.shade100;
+  final negativeBalanceBackground = Colors.red.shade100;
   final primaryButton = Colors.black;
   final primaryBackground = Colors.white;
   final cardGreen = Colors.green.shade100;
-  final cardRed = Colors.red.shade100;
+  final cardRed = Colors.yellow.shade100;
+
+  int _deletedItemCount = 0;
+  Timer? _messageTimer;
 
   // App programming logic STARTS here
   @override
@@ -67,6 +72,7 @@ class _HomePageState extends State<HomePage> {
         "name": item["name"], // name of the event
         "type": item["type"], // type of the event: money entry or exit
         "value": item["value"], // value moved
+        "date": item["date"], // date the event was registered
       };
     }).toList();
 
@@ -110,18 +116,41 @@ class _HomePageState extends State<HomePage> {
     print("$itemKey removed from the eventsList");
     print("Current eventsList: $eventsList");    
 
+    setState(() {
+      _deletedItemCount++;
+    });
+
+    // Reset the timer if it's already running
+    _messageTimer?.cancel();
+    _messageTimer = Timer(const Duration(seconds: 1), _deletedItemMessage);
+
     _refreshItems(); // Updates the UI
-    _deletedItemMessage();
   }
 
   // Message to inform an item was deleted
   Future<void> _deletedItemMessage() async {
-    // Show a snackbar
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text("Item deletado da lista."),
-        )
-    );
+    if (_deletedItemCount > 1) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text("$_deletedItemCount itens deletados."),
+        ),
+      );
+
+      // Reset the count
+      setState(() {
+        _deletedItemCount = 0;
+      });
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text("Item deletado."),
+        ),
+      );
+      // Reset the count
+      setState(() {
+        _deletedItemCount = 0;
+      });
+    }
   }   
     
   // Creates the dialog to add new names to the name list
@@ -136,7 +165,7 @@ class _HomePageState extends State<HomePage> {
       // Clear the text fields
       _nameController.text = "";
       selectedType = null;
-      _valueController.text = "";
+      _valueController.text = "0.00";
     }
     
     showModalBottomSheet(
@@ -195,22 +224,42 @@ class _HomePageState extends State<HomePage> {
                   TextField(
                     controller: _valueController,
                     decoration: const InputDecoration(
-                      hintText: "Valor"
+                      hintText: "Valor",
                     ),
                     keyboardType: TextInputType.number,
+                    inputFormatters: [
+                      FilteringTextInputFormatter.digitsOnly, // Allow only digits
+                    ],
                     onChanged: (text) {
-                      if (text.isNotEmpty) {
-                        double currentValue = double.tryParse(text) ?? 0.0;
-                        if (selectedType == 'Entrada' && currentValue < 0) {
-                          _valueController.text = (-currentValue).toString();
-                        } else if (selectedType == 'Saída' && currentValue > 0) {
-                          _valueController.text = (-currentValue).toString();
-                        }
-                        // move cursor to end of text after modifying the value
-                        _valueController.selection = TextSelection.fromPosition(
-                          TextPosition(offset: _valueController.text.length),
-                        );
+                      if (text.isEmpty) {
+                        // Set default value '0.00' if text is empty
+                        _valueController.text = '0.00';
+                        return;
                       }
+
+                      // Parse the input text as a decimal number
+                      double currentValue = double.tryParse(text) ?? 0.0;
+
+                      // Shift the decimal point for each digit entered
+                      currentValue = currentValue / 100.0;
+
+                      // Handle the logic for 'Entrada' and 'Saída'
+                      if (selectedType == 'Entrada' && currentValue < 0) {
+                        currentValue = -currentValue;
+                      } else if (selectedType == 'Saída' && currentValue > 0) {
+                        currentValue = -currentValue;
+                      }
+
+                      // Format the value to 2 decimal places
+                      String formattedText = currentValue.toStringAsFixed(2);
+
+                      // Update the text field with the formatted value
+                      _valueController.text = formattedText;
+
+                      // Move cursor to end of text after modifying the value
+                      _valueController.selection = TextSelection.fromPosition(
+                        TextPosition(offset: _valueController.text.length),
+                      );
                     },
                   ),
                   const SizedBox(
@@ -227,13 +276,15 @@ class _HomePageState extends State<HomePage> {
                           "name": _nameController.text,
                           "type": selectedType,
                           "value": _valueController.text,
+                          "date": formattedDate,
                         });
                       }
                       if (itemKey != null) {
                         _updateItem(itemKey, {
                           "name": _nameController.text.trim(),
                           "type": selectedType?.trim(),
-                          "value": _valueController.text.trim()
+                          "value": _valueController.text.trim(),
+                          "date": formattedDate.trim(),
                         });
                       }
                       //Clear the text fields
@@ -273,16 +324,15 @@ class _HomePageState extends State<HomePage> {
       ),
       
       // Page body
-      drawer: const MyDrawer(),
       body: Column(
         children: [
           Card(
-            color: pageBackground,
+            color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
             margin: const EdgeInsets.all(10),
             elevation: 3,
             child: ListTile(
               title: Text(
-                "Balanço: ${sumOfEvents().toStringAsFixed(2)}",
+                "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
                 style: const TextStyle(
                   fontSize: 15,
                   fontWeight: FontWeight.bold,
@@ -312,6 +362,10 @@ class _HomePageState extends State<HomePage> {
                   ),
                   subtitle: Column(
                     children: <Widget>[
+                      Align(
+                        alignment: Alignment.topLeft,
+                        child: Text("Data: ${currentItem["date"].toString()}"),
+                      ),
                       Align(
                         alignment: Alignment.topLeft,
                         child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
