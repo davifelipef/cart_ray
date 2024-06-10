@@ -116,12 +116,6 @@
       "languageVersion": "3.1"
     },
     {
-      "name": "flutter_localizations",
-      "rootUri": "file:///C:/Users/davir/Documents/flutter/packages/flutter_localizations",
-      "packageUri": "lib/",
-      "languageVersion": "3.2"
-    },
-    {
       "name": "flutter_test",
       "rootUri": "file:///C:/Users/davir/Documents/flutter/packages/flutter_test",
       "packageUri": "lib/",
@@ -422,7 +416,7 @@
       "languageVersion": "3.2"
     }
   ],
-  "generated": "2024-06-10T23:13:42.062572Z",
+  "generated": "2024-06-10T22:10:33.515425Z",
   "generator": "pub",
   "generatorVersion": "3.4.3",
   "flutterRoot": "file:///C:/Users/davir/Documents/flutter",
