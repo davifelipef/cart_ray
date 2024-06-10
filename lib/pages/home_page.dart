@@ -19,6 +19,7 @@ class _HomePageState extends State<HomePage> {
   // Text fields setup variables
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _typeController = TextEditingController();
+  final TextEditingController _dateController = TextEditingController();
   String? selectedType;
   final List<String> typeOptions = ['Entrada', 'Saída'];
   final TextEditingController _valueController = TextEditingController();
@@ -60,6 +61,9 @@ class _HomePageState extends State<HomePage> {
     day = currentDate.day; // Gets the current date's day
     formattedDate = DateFormat('dd/MM/yyyy').format(currentDate); // formats the date 
 
+    // Sets the initial date as the formatted date
+    _dateController.text = formattedDate;
+
     print("Today's date is $formattedDate.");
     _refreshItems();
   }
@@ -74,8 +78,12 @@ class _HomePageState extends State<HomePage> {
         "type": item["type"], // type of the event: money entry or exit
         "value": item["value"], // value moved
         "date": item["date"], // date the event was registered
+        "dateTime": DateFormat('dd/MM/yyyy').parse(item["date"]), // parsed date
       };
     }).toList();
+
+    // Sort the list based on the "dateTime" field in descending order
+    data.sort((a, b) => (b["dateTime"] as DateTime).compareTo(a["dateTime"] as DateTime));
 
     // Sort the list based on the "name" field
     //data.sort((a, b) => (a["name"] as String).compareTo(b["name"] as String));
@@ -83,7 +91,6 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _events = data.toList();
     });
-    
   }
 
   // Creates a new item
@@ -160,6 +167,7 @@ class _HomePageState extends State<HomePage> {
     if (itemKey != null) {
       final existingItem = _events.firstWhere((element) => element["key"] == itemKey);
       _nameController.text = existingItem["name"];
+      _dateController.text = existingItem["date"];
       selectedType = existingItem["type"];
       _valueController.text = existingItem["value"];
     } else {
@@ -170,164 +178,197 @@ class _HomePageState extends State<HomePage> {
     }
     
     showModalBottomSheet(
-  context: ctx,
-  builder: (_) => Container(
-    padding: EdgeInsets.only(
-      bottom: MediaQuery.of(ctx).viewInsets.bottom,
-      top: 15,
-      left: 15,
-      right: 15,
-    ),
-    child: SingleChildScrollView(
-      child: StatefulBuilder(
-        builder: (BuildContext context, StateSetter setState) {
-          return Form(
-            key: _formKey,
-            child: Column(
-              children: <Widget>[
-                // Name of the event text field
-                TextFormField(
-                  controller: _nameController,
-                  decoration: const InputDecoration(
-                    hintText: "Nome do registro",
-                  ),
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, digite um nome para o registro.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                // Type of event dropdown menu
-                DropdownButtonFormField<String>(
-                  decoration: const InputDecoration(
-                    hintText: "Escolha um tipo de registro",
-                    border: OutlineInputBorder(),
-                  ),
-                  value: selectedType,
-                  items: typeOptions.map((String value) {
-                    return DropdownMenuItem<String>(
-                      value: value,
-                      child: Text(value),
-                    );
-                  }).toList(),
-                  onChanged: (newValue) {
-                    setState(() {
-                      selectedType = newValue;
-                      if (_valueController.text.isNotEmpty) {
-                        double currentValue = double.tryParse(_valueController.text) ?? 0.0;
-                        if (selectedType == 'Entrada' && currentValue < 0) {
-                          _valueController.text = (-currentValue).toString();
-                        } else if (selectedType == 'Saída' && currentValue > 0) {
-                          _valueController.text = (-currentValue).toString();
+      context: ctx,
+      builder: (_) => Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(ctx).viewInsets.bottom,
+          top: 15,
+          left: 15,
+          right: 15,
+        ),
+        child: SingleChildScrollView(
+          child: StatefulBuilder(
+            builder: (BuildContext context, StateSetter setState) {
+              return Form(
+                key: _formKey,
+                child: Column(
+                  children: <Widget>[
+                    // Name of the event text field
+                    TextFormField(
+                      controller: _nameController,
+                      decoration: const InputDecoration(
+                        hintText: "Nome do registro",
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, digite um nome para o registro.';
                         }
-                      }
-                    });
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Por favor, escolha um tipo de registro.';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(
-                  height: 20,
-                ),
-                // Value of the event number field
-                TextFormField(
-                  controller: _valueController,
-                  decoration: const InputDecoration(
-                    hintText: "Valor",
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [
-                    FilteringTextInputFormatter.digitsOnly, // Allow only digits
+                        return null;
+                      },
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    // Date edit field
+                    TextFormField(
+                      controller: _dateController,
+                      decoration: const InputDecoration(
+                        hintText: "Data do registro",
+                      ),
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, informe uma data para o registro.';
+                        }
+                        return null;
+                      },
+                      readOnly: true, // Makes the field read-only so that the keyboard won't appear
+                      onTap: () async {
+                        DateTime? pickedDate = await showDatePicker(
+                          context: context,
+                          initialDate: currentDate, // Use the current date as the initial date
+                          firstDate: DateTime(2000), // Set the earliest date that can be picked
+                          lastDate: DateTime(2101), // Set the latest date that can be picked
+                        );
+
+                        if (pickedDate != null && pickedDate != currentDate) {
+                          setState(() {
+                            currentDate = pickedDate;
+                            formattedDate = DateFormat('dd/MM/yyyy').format(currentDate);
+                            _dateController.text = formattedDate;
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    // Type of event dropdown menu
+                    DropdownButtonFormField<String>(
+                      decoration: const InputDecoration(
+                        hintText: "Escolha um tipo de registro",
+                        border: OutlineInputBorder(),
+                      ),
+                      value: selectedType,
+                      items: typeOptions.map((String value) {
+                        return DropdownMenuItem<String>(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
+                      onChanged: (newValue) {
+                        setState(() {
+                          selectedType = newValue;
+                          if (_valueController.text.isNotEmpty) {
+                            double currentValue = double.tryParse(_valueController.text) ?? 0.0;
+                            if (selectedType == 'Entrada' && currentValue < 0) {
+                              _valueController.text = (-currentValue).toString();
+                            } else if (selectedType == 'Saída' && currentValue > 0) {
+                              _valueController.text = (-currentValue).toString();
+                            }
+                          }
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Por favor, escolha um tipo de registro.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    // Value of the event number field
+                    TextFormField(
+                      controller: _valueController,
+                      decoration: const InputDecoration(
+                        hintText: "Valor",
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.digitsOnly, // Allow only digits
+                      ],
+                      onChanged: (text) {
+                        if (text.isEmpty) {
+                          // Set default value '0.00' if text is empty
+                          _valueController.text = '0.00';
+                          return;
+                        }
+
+                        // Parse the input text as a decimal number
+                        double currentValue = double.tryParse(text) ?? 0.0;
+
+                        // Shift the decimal point for each digit entered
+                        currentValue = currentValue / 100.0;
+
+                        // Handle the logic for 'Entrada' and 'Saída'
+                        if (selectedType == 'Entrada' && currentValue < 0) {
+                          currentValue = -currentValue;
+                        } else if (selectedType == 'Saída' && currentValue > 0) {
+                          currentValue = -currentValue;
+                        }
+
+                        // Format the value to 2 decimal places
+                        String formattedText = currentValue.toStringAsFixed(2);
+
+                        // Update the text field with the formatted value
+                        _valueController.text = formattedText;
+
+                        // Move cursor to end of text after modifying the value
+                        _valueController.selection = TextSelection.fromPosition(
+                          TextPosition(offset: _valueController.text.length),
+                        );
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty || value == '0.00') {
+                          return 'Por favor, informe um valor.';
+                        }
+                        return null;
+                      },
+                    ),
+                    const SizedBox(
+                      height: 20,
+                    ),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: primaryButton,
+                        foregroundColor: primaryBackground,
+                      ),
+                      onPressed: () async {
+                        if (_formKey.currentState?.validate() ?? false) {
+                          if (itemKey == null) {
+                            _createItem({
+                              "name": _nameController.text,
+                              "type": selectedType,
+                              "value": _valueController.text,
+                              "date": formattedDate,
+                            });
+                          }
+                          if (itemKey != null) {
+                            _updateItem(itemKey, {
+                              "name": _nameController.text.trim(),
+                              "type": selectedType?.trim(),
+                              "value": _valueController.text.trim(),
+                              "date": formattedDate.trim(),
+                            });
+                          }
+                          //Clear the text fields
+                          _nameController.text = "";
+                          _typeController.text = "";
+                          _valueController.text = "";
+                          // Closes the modal window
+                          Navigator.of(context).pop();
+                        }
+                      },
+                      child: const Text("Salvar"),
+                    ),
                   ],
-                  onChanged: (text) {
-                    if (text.isEmpty) {
-                      // Set default value '0.00' if text is empty
-                      _valueController.text = '0.00';
-                      return;
-                    }
-
-                    // Parse the input text as a decimal number
-                    double currentValue = double.tryParse(text) ?? 0.0;
-
-                    // Shift the decimal point for each digit entered
-                    currentValue = currentValue / 100.0;
-
-                    // Handle the logic for 'Entrada' and 'Saída'
-                    if (selectedType == 'Entrada' && currentValue < 0) {
-                      currentValue = -currentValue;
-                    } else if (selectedType == 'Saída' && currentValue > 0) {
-                      currentValue = -currentValue;
-                    }
-
-                    // Format the value to 2 decimal places
-                    String formattedText = currentValue.toStringAsFixed(2);
-
-                    // Update the text field with the formatted value
-                    _valueController.text = formattedText;
-
-                    // Move cursor to end of text after modifying the value
-                    _valueController.selection = TextSelection.fromPosition(
-                      TextPosition(offset: _valueController.text.length),
-                    );
-                  },
-                  validator: (value) {
-                    if (value == null || value.isEmpty || value == '0.00') {
-                      return 'Por favor, informe um valor.';
-                    }
-                    return null;
-                  },
                 ),
-                const SizedBox(
-                  height: 20,
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: primaryButton,
-                    foregroundColor: primaryBackground,
-                  ),
-                  onPressed: () async {
-                    if (_formKey.currentState?.validate() ?? false) {
-                      if (itemKey == null) {
-                        _createItem({
-                          "name": _nameController.text,
-                          "type": selectedType,
-                          "value": _valueController.text,
-                          "date": formattedDate,
-                        });
-                      }
-                      if (itemKey != null) {
-                        _updateItem(itemKey, {
-                          "name": _nameController.text.trim(),
-                          "type": selectedType?.trim(),
-                          "value": _valueController.text.trim(),
-                          "date": formattedDate.trim(),
-                        });
-                      }
-                      //Clear the text fields
-                      _nameController.text = "";
-                      _typeController.text = "";
-                      _valueController.text = "";
-                      // Closes the modal window
-                      Navigator.of(context).pop();
-                    }
-                  },
-                  child: const Text("Salvar"),
-                ),
-              ],
-            ),
-          );
-        },),
-      ),
-    ),
-  );
+              );
+            },),
+          ),
+        ),
+      );
 
   }
   // App programming logic ENDS here
