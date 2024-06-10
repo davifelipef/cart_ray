@@ -228,6 +228,7 @@ class _HomePageState extends State<HomePage> {
                           initialDate: currentDate, // Use the current date as the initial date
                           firstDate: DateTime(2000), // Set the earliest date that can be picked
                           lastDate: DateTime(2101), // Set the latest date that can be picked
+                          locale: const Locale("pt", "BR"),
                         );
 
                         if (pickedDate != null && pickedDate != currentDate) {
