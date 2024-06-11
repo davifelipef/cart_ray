@@ -95,9 +95,9 @@ image
 file:///C:/Users/davir/AppData/Local/Pub/Cache/hosted/pub.dev/image-4.2.0/
 file:///C:/Users/davir/AppData/Local/Pub/Cache/hosted/pub.dev/image-4.2.0/lib/
 intl
-3.0
-file:///C:/Users/davir/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.19.0/
-file:///C:/Users/davir/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.19.0/lib/
+2.12
+file:///C:/Users/davir/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.18.1/
+file:///C:/Users/davir/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.18.1/lib/
 json_annotation
 3.0
 file:///C:/Users/davir/AppData/Local/Pub/Cache/hosted/pub.dev/json_annotation-4.9.0/
@@ -246,6 +246,10 @@ flutter
 3.2
 file:///C:/Users/davir/Documents/Dev/flutter/packages/flutter/
 file:///C:/Users/davir/Documents/Dev/flutter/packages/flutter/lib/
+flutter_localizations
+3.2
+file:///C:/Users/davir/Documents/Dev/flutter/packages/flutter_localizations/
+file:///C:/Users/davir/Documents/Dev/flutter/packages/flutter_localizations/lib/
 flutter_test
 3.2
 file:///C:/Users/davir/Documents/Dev/flutter/packages/flutter_test/
