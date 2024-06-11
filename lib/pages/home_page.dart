@@ -39,6 +39,7 @@ class _HomePageState extends State<HomePage> {
   late String formattedDate;
 
   // Layout setup variables
+  late PageController _pageController;
   final defaultIconTheme = const IconThemeData(color: Colors.white);
   final positiveBalanceBackground = Colors.blue.shade100;
   final negativeBalanceBackground = Colors.red.shade100;
@@ -64,7 +65,12 @@ class _HomePageState extends State<HomePage> {
     // Sets the initial date as the formatted date
     _dateController.text = formattedDate;
 
-    print("Today's date is $formattedDate.");
+    // Setups the page controller to navigate between months
+    _pageController = PageController(
+      initialPage: currentDate.month - 1,
+    );
+
+    // Refresh the page
     _refreshItems();
   }
 
@@ -88,8 +94,15 @@ class _HomePageState extends State<HomePage> {
     // Sort the list based on the "name" field
     //data.sort((a, b) => (a["name"] as String).compareTo(b["name"] as String));
 
+    // Filter the list based on the selected month
+    final filteredData = data.where((item) {
+      final itemDate = item["dateTime"] as DateTime;
+      return itemDate.year == currentDate.year && itemDate.month == currentDate.month;
+    }).toList();
+
     setState(() {
-      _events = data.toList();
+      //_events = data.toList();
+      _events = filteredData;
     });
   }
 
@@ -173,6 +186,7 @@ class _HomePageState extends State<HomePage> {
     } else {
       // Clear the text fields
       _nameController.text = "";
+      _dateController.text = formattedDate;
       selectedType = null;
       _valueController.text = "0.00";
     }
@@ -189,6 +203,7 @@ class _HomePageState extends State<HomePage> {
         child: SingleChildScrollView(
           child: StatefulBuilder(
             builder: (BuildContext context, StateSetter setState) {
+              DateTime? tempPickedDate = currentDate;
               return Form(
                 key: _formKey,
                 child: Column(
@@ -222,22 +237,21 @@ class _HomePageState extends State<HomePage> {
                         return null;
                       },
                       readOnly: true, // Makes the field read-only so that the keyboard won't appear
-                      onTap: () async {
-                        DateTime? pickedDate = await showDatePicker(
-                          context: context,
-                          initialDate: currentDate, // Use the current date as the initial date
-                          firstDate: DateTime(2000), // Set the earliest date that can be picked
-                          lastDate: DateTime(2101), // Set the latest date that can be picked
-                        );
+                    onTap: () async {
+                      DateTime? pickedDate = await showDatePicker(
+                        context: context,
+                        initialDate: tempPickedDate ?? currentDate, // Use the current date as the initial date
+                        firstDate: DateTime(2000), // Set the earliest date that can be picked
+                        lastDate: DateTime(2101), // Set the latest date that can be picked
+                      );
 
-                        if (pickedDate != null && pickedDate != currentDate) {
-                          setState(() {
-                            currentDate = pickedDate;
-                            formattedDate = DateFormat('dd/MM/yyyy').format(currentDate);
-                            _dateController.text = formattedDate;
-                          });
-                        }
-                      },
+                      if (pickedDate != null && pickedDate != tempPickedDate) {
+                        setState(() {
+                          tempPickedDate = pickedDate;
+                          _dateController.text = DateFormat('dd/MM/yyyy').format(tempPickedDate!);
+                        });
+                      }
+                    },
                     ),
                     const SizedBox(
                       height: 20,
@@ -393,6 +407,63 @@ class _HomePageState extends State<HomePage> {
       // Page body
       body: Column(
         children: [
+          SizedBox(
+      height: 40,
+      child: PageView(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            currentDate = DateTime(currentDate.year, index + 1, 1);
+            _refreshItems();
+          });
+        },
+        children: [
+          for (int i = 0; i < 12; i++)
+            Center(
+              child: GestureDetector(
+                onHorizontalDragUpdate: (details) {
+                  if (details.delta.dx > 0) {
+                    _pageController.previousPage(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.ease,
+                    );
+                  } else if (details.delta.dx < 0) {
+                    _pageController.nextPage(
+                      duration: const Duration(milliseconds: 500),
+                      curve: Curves.ease,
+                    );
+                  }
+                },
+                child: Text(
+                  DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1)),
+                  style: const TextStyle(fontSize: 20),
+                ),
+              ),
+            ),
+          PageView.builder(
+            controller: _pageController,
+            itemCount: 12, // 12 months
+            itemBuilder: (context, index) {
+              final month = DateTime(currentDate.year, index + 1, 1);
+              String monthName = DateFormat.MMMM('pt_BR').format(month);
+              monthName = monthName[0].toUpperCase() + monthName.substring(1);
+              return Center(
+                child: Text(
+                  monthName,
+                  style: const TextStyle(fontSize: 20),
+                ),
+              );
+            },
+            onPageChanged: (index) {
+              setState(() {
+                currentDate = DateTime(currentDate.year, index + 1, 1);
+                _refreshItems();
+              });
+            },
+          ),
+        ],
+      ),
+    ),
           Card(
             color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
             margin: const EdgeInsets.all(10),
