@@ -408,62 +408,67 @@ class _HomePageState extends State<HomePage> {
       body: Column(
         children: [
           SizedBox(
-      height: 40,
-      child: PageView(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            currentDate = DateTime(currentDate.year, index + 1, 1);
-            _refreshItems();
-          });
-        },
-        children: [
-          for (int i = 0; i < 12; i++)
-            Center(
-              child: GestureDetector(
-                onHorizontalDragUpdate: (details) {
-                  if (details.delta.dx > 0) {
-                    _pageController.previousPage(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.ease,
-                    );
-                  } else if (details.delta.dx < 0) {
-                    _pageController.nextPage(
-                      duration: const Duration(milliseconds: 500),
-                      curve: Curves.ease,
-                    );
-                  }
-                },
-                child: Text(
-                  DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1)),
-                  style: const TextStyle(fontSize: 20),
-                ),
+            height: 40,
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() {
+                  currentDate = DateTime(currentDate.year, index + 1, 1);
+                  _refreshItems();
+                });
+              },
+              children: [
+                for (int i = 0; i < 12; i++)
+                  Center(
+                    child: GestureDetector(
+                      onHorizontalDragUpdate: (details) {
+                        if (details.delta.dx > 0) {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.ease,
+                          );
+                        } else if (details.delta.dx < 0) {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.ease,
+                          );
+                        }
+                      },
+                      child: Text(
+                        // Get the month name and capitalize the first letter
+                        (){
+                          String monthName = DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1));
+                          return monthName[0].toUpperCase() + monthName.substring(1);
+                        }(),
+                        //DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1)),
+                        style: const TextStyle(fontSize: 20),
+                      ),
+                    ),
+                  ),
+                  PageView.builder(
+                    controller: _pageController,
+                    itemCount: 12, // 12 months
+                    itemBuilder: (context, index) {
+                      final month = DateTime(currentDate.year, index + 1, 1);
+                      String monthName = DateFormat.MMMM('pt_BR').format(month);
+                      monthName = monthName[0].toUpperCase() + monthName.substring(1);
+                      return Center(
+                        child: Text(
+                          monthName,
+                          style: const TextStyle(fontSize: 20),
+                        ),
+                      );
+                    },
+                    onPageChanged: (index) {
+                      setState(() {
+                        currentDate = DateTime(currentDate.year, index + 1, 1);
+                        _refreshItems();
+                      });
+                    },
+                  ),
+                ],
               ),
             ),
-          PageView.builder(
-            controller: _pageController,
-            itemCount: 12, // 12 months
-            itemBuilder: (context, index) {
-              final month = DateTime(currentDate.year, index + 1, 1);
-              String monthName = DateFormat.MMMM('pt_BR').format(month);
-              monthName = monthName[0].toUpperCase() + monthName.substring(1);
-              return Center(
-                child: Text(
-                  monthName,
-                  style: const TextStyle(fontSize: 20),
-                ),
-              );
-            },
-            onPageChanged: (index) {
-              setState(() {
-                currentDate = DateTime(currentDate.year, index + 1, 1);
-                _refreshItems();
-              });
-            },
-          ),
-        ],
-      ),
-    ),
           Card(
             color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
             margin: const EdgeInsets.all(10),
