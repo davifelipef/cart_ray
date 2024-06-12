@@ -405,164 +405,164 @@ class _HomePageState extends State<HomePage> {
       ),
       
       // Page body
-      body: Column(
-        children: [
-          SizedBox(
-            height: 40,
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  currentDate = DateTime(currentDate.year, index + 1, 1);
-                  _refreshItems();
-                });
+body: Column(
+  children: [
+    SizedBox(
+      height: 40,
+      child: PageView.builder(
+        controller: _pageController,
+        onPageChanged: (index) {
+          setState(() {
+            int year = currentDate.year + (index ~/ 12);
+            int month = (index % 12) + 1;
+            
+            // Check if index is negative, and adjust year accordingly
+            if (index < 0) {
+              year--;
+            }
+            
+            // Adjust month and year when reaching boundaries
+            if (month == 0) {
+              month = 12;
+              year--;
+            } else if (month == 13) {
+              month = 1;
+              year++;
+            }
+            
+            currentDate = DateTime(year, month, 1);
+            _refreshItems();
+          });
+        },
+        itemBuilder: (context, index) {
+          int year = currentDate.year + (index ~/ 12);
+          int month = (index % 12) + 1;
+          String monthName = DateFormat.MMMM('pt_BR').format(DateTime(year, month, 1));
+          monthName = '${monthName[0].toUpperCase()}${monthName.substring(1)} de $year';
+          return Center(
+            child: GestureDetector(
+              onHorizontalDragUpdate: (details) {
+                if (details.delta.dx > 0) {
+                  _pageController.previousPage(
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.ease,
+                  );
+                } else if (details.delta.dx < 0) {
+                  _pageController.nextPage(
+                    duration: const Duration(milliseconds: 500),
+                    curve: Curves.ease,
+                  );
+                }
               },
-              children: [
-                for (int i = 0; i < 12; i++)
-                  Center(
-                    child: GestureDetector(
-                      onHorizontalDragUpdate: (details) {
-                        if (details.delta.dx > 0) {
-                          _pageController.previousPage(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.ease,
-                          );
-                        } else if (details.delta.dx < 0) {
-                          _pageController.nextPage(
-                            duration: const Duration(milliseconds: 500),
-                            curve: Curves.ease,
-                          );
-                        }
-                      },
-                      child: Text(
-                        // Get the month name and capitalize the first letter
-                        (){
-                          String monthName = DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1));
-                          return monthName[0].toUpperCase() + monthName.substring(1);
-                        }(),
-                        //DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1)),
-                        style: const TextStyle(fontSize: 20),
-                      ),
-                    ),
-                  ),
-                  PageView.builder(
-                    controller: _pageController,
-                    itemCount: 12, // 12 months
-                    itemBuilder: (context, index) {
-                      final month = DateTime(currentDate.year, index + 1, 1);
-                      String monthName = DateFormat.MMMM('pt_BR').format(month);
-                      monthName = monthName[0].toUpperCase() + monthName.substring(1);
-                      return Center(
-                        child: Text(
-                          monthName,
-                          style: const TextStyle(fontSize: 20),
-                        ),
-                      );
-                    },
-                    onPageChanged: (index) {
-                      setState(() {
-                        currentDate = DateTime(currentDate.year, index + 1, 1);
-                        _refreshItems();
-                      });
-                    },
-                  ),
-                ],
+              child: Text(
+                monthName,
+                style: const TextStyle(fontSize: 20),
               ),
             ),
-          Card(
-            color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
-            margin: const EdgeInsets.all(10),
-            elevation: 3,
-            child: ListTile(
-              title: Text(
-                "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const Divider(),
-          Expanded(
-          child: ListView.builder(
-            itemCount: _events.length,
-            itemBuilder: (_, index) {
-              final currentItem = _events[index];
-              String valueString = currentItem["value"] ?? "0.0";
-              Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
-            return Card(
-                color: cardColor,
-                margin: const EdgeInsets.all(10),
-                elevation: 3,
-                child: ListTile(
-                  title: Text(
-                    currentItem["name"] ?? "Erro ao retornar o nome",
-                    style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  subtitle: Column(
-                    children: <Widget>[
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Text("Data: ${currentItem["date"].toString()}"),
-                      ),
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
-                      ),
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
-                      ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _showForm(
-                          context,
-                          currentItem["key"],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _deleteItem(
-                          currentItem["key"],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-      ],
+          );
+        },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showForm(context, null),
-        backgroundColor: primaryButton,
-        foregroundColor: primaryBackground,
-        child: const Icon(Icons.add),
-      ),
-    );
-  }
+    ),
 
-  double sumOfEvents() {
-    double total = 0.0;
-    for (final item in _events) {
-      // Retrieve the event value
-      final eventValue = item["value"] ?? "0,00";
-      // Convert the value to a double, replacing commas with dots if necessary
-      final eventsSum = double.tryParse(eventValue.replaceAll(',', '.')) ?? 0.00;
-      // Add the value to the total sum
-      total += eventsSum;
+
+            
+                // Balance card setup
+                Card(
+                  color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
+                  margin: const EdgeInsets.all(10),
+                  elevation: 3,
+                  child: ListTile(
+                    title: Text(
+                      "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ),
+                const Divider(), // Provides an horizontal separator
+                // Items list setup
+                Expanded(
+                child: ListView.builder(
+                  itemCount: _events.length,
+                  itemBuilder: (_, index) {
+                    final currentItem = _events[index];
+                    String valueString = currentItem["value"] ?? "0.0";
+                    Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
+                  return Card(
+                      color: cardColor,
+                      margin: const EdgeInsets.all(10),
+                      elevation: 3,
+                      child: ListTile(
+                        title: Text(
+                          currentItem["name"] ?? "Erro ao retornar o nome",
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Column(
+                          children: <Widget>[
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: Text("Data: ${currentItem["date"].toString()}"),
+                            ),
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
+                            ),
+                            Align(
+                              alignment: Alignment.topLeft,
+                              child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
+                            ),
+                          ],
+                        ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: <Widget>[
+                            IconButton(
+                              icon: const Icon(Icons.edit),
+                              onPressed: () => _showForm(
+                                context,
+                                currentItem["key"],
+                              ),
+                            ),
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _deleteItem(
+                                currentItem["key"],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+          // Creates the floating button
+          floatingActionButton: FloatingActionButton(
+            onPressed: () => _showForm(context, null),
+            backgroundColor: primaryButton,
+            foregroundColor: primaryBackground,
+            child: const Icon(Icons.add),
+          ),
+        );
+      }
+
+      double sumOfEvents() {
+        double total = 0.0;
+        for (final item in _events) {
+          // Retrieve the event value
+          final eventValue = item["value"] ?? "0,00";
+          // Convert the value to a double, replacing commas with dots if necessary
+          final eventsSum = double.tryParse(eventValue.replaceAll(',', '.')) ?? 0.00;
+          // Add the value to the total sum
+          total += eventsSum;
+        }
+        return total;
+      }
     }
-    return total;
-  }
-}
