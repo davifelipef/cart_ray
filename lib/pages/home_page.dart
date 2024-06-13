@@ -33,9 +33,7 @@ class _HomePageState extends State<HomePage> {
 
   // Date setup variables
   late DateTime currentDate;  
-  late int year;
-  late int month;
-  late int day;
+  late DateTime initialDate;
   late String formattedDate;
 
   // Layout setup variables
@@ -51,24 +49,20 @@ class _HomePageState extends State<HomePage> {
   int _deletedItemCount = 0;
   Timer? _messageTimer;
 
+  static const initialPage = 1200;
+
   // App programming logic STARTS here
   @override
   void initState() {
     super.initState();
     // Date setup
     currentDate = DateTime.now(); // Gets the current date
-    year = currentDate.year; // Gets the current date's year
-    month = currentDate.month; // Gets the current date's month
-    day = currentDate.day; // Gets the current date's day
+    initialDate = currentDate;
+    _dateController.text = DateFormat('dd/MM/yyyy').format(currentDate);
     formattedDate = DateFormat('dd/MM/yyyy').format(currentDate); // formats the date 
 
-    // Sets the initial date as the formatted date
-    _dateController.text = formattedDate;
-
-    // Setups the page controller to navigate between months
-    _pageController = PageController(
-      initialPage: currentDate.month - 1,
-    );
+    // Sets up the page starting page
+    _pageController = PageController(initialPage: initialPage);
 
     // Refresh the page
     _refreshItems();
@@ -183,6 +177,7 @@ class _HomePageState extends State<HomePage> {
       _dateController.text = existingItem["date"];
       selectedType = existingItem["type"];
       _valueController.text = existingItem["value"];
+      formattedDate = existingItem["date"];
     } else {
       // Clear the text fields
       _nameController.text = "";
@@ -363,11 +358,12 @@ class _HomePageState extends State<HomePage> {
                               "name": _nameController.text.trim(),
                               "type": selectedType?.trim(),
                               "value": _valueController.text.trim(),
-                              "date": formattedDate.trim(),
+                              "date": _dateController.text.trim(),
                             });
                           }
                           //Clear the text fields
                           _nameController.text = "";
+                          _dateController.text = formattedDate;
                           _typeController.text = "";
                           _valueController.text = "";
                           // Closes the modal window
@@ -383,43 +379,77 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       );
+    }
 
-  }
-  // App programming logic ENDS here
+    DateTime _calculateDate(int index) {
 
-  // Build setup starts here
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Cart Ray",
-          style: TextStyle(
-            fontSize: 20,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        centerTitle: true,
-        iconTheme: defaultIconTheme
-      ),
+      DateTime currentDate = DateTime.now();
+
+      // Calculate the target month and year
+      int targetMonth = currentDate.month + (index - initialPage);
+      int targetYear = currentDate.year;
+
+      print('Starting target month and year: $targetMonth / $targetYear');
+
+      // Adjust the target month and year
+      while (targetMonth <= 0) {
+        targetYear--;
+        targetMonth += 12;
+      }
+
+      while (targetMonth > 12) {
+        targetYear++;
+        targetMonth -= 12;
+      }
+
+      print('Adjusted target month and year: $targetMonth / $targetYear');
+
+      // Create and return the new DateTime object
+      return DateTime(targetYear, targetMonth, 1);
       
-      // Page body
-      body: Column(
-        children: [
-          SizedBox(
-            height: 40,
-            child: PageView(
-              controller: _pageController,
-              onPageChanged: (index) {
-                setState(() {
-                  currentDate = DateTime(currentDate.year, index + 1, 1);
-                  _refreshItems();
-                });
-              },
-              children: [
-                for (int i = 0; i < 12; i++)
-                  Center(
+    }
+
+    void _updateCurrentDate(int index) {
+      setState(() {
+      currentDate = _calculateDate(index);
+      _refreshItems();
+      });
+    }
+    // App programming logic ENDS here
+
+    // Build setup starts here
+    @override
+    Widget build(BuildContext context) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "Cart Ray",
+            style: TextStyle(
+              fontSize: 20,
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+          centerTitle: true,
+          iconTheme: defaultIconTheme
+        ),
+      
+        // Page body
+        body: Column(
+          children: [
+            SizedBox(
+              height: 40,
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: _updateCurrentDate,
+                itemBuilder: (context, index) {
+
+                  DateTime adjustedDate = _calculateDate(index);
+          
+                  String monthName = DateFormat.MMMM('pt_BR').format(adjustedDate);
+                  monthName = '${monthName[0].toUpperCase()}${monthName.substring(1)} de ${adjustedDate.year}';
+          
+                  return Center(
                     child: GestureDetector(
                       onHorizontalDragUpdate: (details) {
                         if (details.delta.dx > 0) {
@@ -435,115 +465,96 @@ class _HomePageState extends State<HomePage> {
                         }
                       },
                       child: Text(
-                        // Get the month name and capitalize the first letter
-                        (){
-                          String monthName = DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1));
-                          return monthName[0].toUpperCase() + monthName.substring(1);
-                        }(),
-                        //DateFormat.MMMM('pt_BR').format(DateTime(currentDate.year, i + 1, 1)),
+                        monthName,
                         style: const TextStyle(fontSize: 20),
                       ),
                     ),
-                  ),
-                  PageView.builder(
-                    controller: _pageController,
-                    itemCount: 12, // 12 months
-                    itemBuilder: (context, index) {
-                      final month = DateTime(currentDate.year, index + 1, 1);
-                      String monthName = DateFormat.MMMM('pt_BR').format(month);
-                      monthName = monthName[0].toUpperCase() + monthName.substring(1);
-                      return Center(
-                        child: Text(
-                          monthName,
-                          style: const TextStyle(fontSize: 20),
-                        ),
-                      );
-                    },
-                    onPageChanged: (index) {
-                      setState(() {
-                        currentDate = DateTime(currentDate.year, index + 1, 1);
-                        _refreshItems();
-                      });
-                    },
-                  ),
-                ],
+                  );
+                },),
               ),
-            ),
-          Card(
-            color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
-            margin: const EdgeInsets.all(10),
-            elevation: 3,
-            child: ListTile(
-              title: Text(
-                "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-          ),
-          const Divider(),
-          Expanded(
-          child: ListView.builder(
-            itemCount: _events.length,
-            itemBuilder: (_, index) {
-              final currentItem = _events[index];
-              String valueString = currentItem["value"] ?? "0.0";
-              Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
-            return Card(
-                color: cardColor,
+              // End of the month swipe setup
+          
+              // Balance card setup
+              Card(
+                color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
                 margin: const EdgeInsets.all(10),
                 elevation: 3,
                 child: ListTile(
                   title: Text(
-                    currentItem["name"] ?? "Erro ao retornar o nome",
+                    "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
                     style: const TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  subtitle: Column(
-                    children: <Widget>[
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Text("Data: ${currentItem["date"].toString()}"),
-                      ),
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
-                      ),
-                      Align(
-                        alignment: Alignment.topLeft,
-                        child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
-                      ),
-                    ],
-                  ),
-                  trailing: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: <Widget>[
-                      IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _showForm(
-                          context,
-                          currentItem["key"],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.delete),
-                        onPressed: () => _deleteItem(
-                          currentItem["key"],
-                        ),
-                      ),
-                    ],
-                  ),
                 ),
-              );
-            },
+              ),
+              // End of the balance card setup 
+          
+              const Divider(), // Provides an horizontal separator
+          
+              // Items list setup
+              Expanded(
+              child: ListView.builder(
+                itemCount: _events.length,
+                itemBuilder: (_, index) {
+                  final currentItem = _events[index];
+                  String valueString = currentItem["value"] ?? "0.0";
+                  Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
+                return Card(
+                    color: cardColor,
+                    margin: const EdgeInsets.all(10),
+                    elevation: 3,
+                    child: ListTile(
+                      title: Text(
+                        currentItem["name"] ?? "Erro ao retornar o nome",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        children: <Widget>[
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text("Data: ${currentItem["date"].toString()}"),
+                          ),
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
+                          ),
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
+                          ),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showForm(
+                              context,
+                              currentItem["key"],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _deleteItem(
+                              currentItem["key"],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },),
+            ),],
           ),
-        ),
-      ],
-      ),
+      // End of the page body
+
+      // Creates the floating button
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showForm(context, null),
         backgroundColor: primaryButton,
@@ -553,6 +564,7 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  // Function that sums the events
   double sumOfEvents() {
     double total = 0.0;
     for (final item in _events) {
