@@ -34,9 +34,6 @@ class _HomePageState extends State<HomePage> {
   // Date setup variables
   late DateTime currentDate;  
   late DateTime initialDate;
-  //late int year;
-  //late int month;
-  //late int day;
   late String formattedDate;
 
   // Layout setup variables
@@ -61,14 +58,8 @@ class _HomePageState extends State<HomePage> {
     // Date setup
     currentDate = DateTime.now(); // Gets the current date
     initialDate = currentDate;
-    //_dateController.text = DateFormat('dd/MM/yyyy').format(currentDate);
-    /*year = currentDate.year; // Gets the current date's year
-    month = currentDate.month; // Gets the current date's month
-    day = currentDate.day; // Gets the current date's day*/
+    _dateController.text = DateFormat('dd/MM/yyyy').format(currentDate);
     formattedDate = DateFormat('dd/MM/yyyy').format(currentDate); // formats the date 
-
-    // Sets the initial date as the formatted date
-    _dateController.text = formattedDate;
 
     // Sets up the page starting page
     _pageController = PageController(initialPage: initialPage);
@@ -186,6 +177,7 @@ class _HomePageState extends State<HomePage> {
       _dateController.text = existingItem["date"];
       selectedType = existingItem["type"];
       _valueController.text = existingItem["value"];
+      formattedDate = existingItem["date"];
     } else {
       // Clear the text fields
       _nameController.text = "";
@@ -366,11 +358,12 @@ class _HomePageState extends State<HomePage> {
                               "name": _nameController.text.trim(),
                               "type": selectedType?.trim(),
                               "value": _valueController.text.trim(),
-                              "date": formattedDate.trim(),
+                              "date": _dateController.text.trim(),
                             });
                           }
                           //Clear the text fields
                           _nameController.text = "";
+                          _dateController.text = formattedDate;
                           _typeController.text = "";
                           _valueController.text = "";
                           // Closes the modal window
@@ -388,23 +381,40 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    void _updateCurrentDate(int index) {
-      int monthDiff = index - initialPage;
-      int newYear = initialDate.year + ((initialDate.month + monthDiff - 1) ~/ 12);
-      int newMonth = ((initialDate.month + monthDiff - 1) % 12) + 1;
+    DateTime _calculateDate(int index) {
 
-      print("_updateCurrentDate method running...");
-      print('Index: $index');
-      print('Month Diff: $monthDiff');
-      print('New Year: $newYear');
-      print('New Month: $newMonth');
+      DateTime currentDate = DateTime.now();
 
-      setState(() {
-        currentDate = DateTime(newYear, newMonth, 1);
-        _refreshItems();
-      });
+      // Calculate the target month and year
+      int targetMonth = currentDate.month + (index - initialPage);
+      int targetYear = currentDate.year;
+
+      print('Starting target month and year: $targetMonth / $targetYear');
+
+      // Adjust the target month and year
+      while (targetMonth <= 0) {
+        targetYear--;
+        targetMonth += 12;
+      }
+
+      while (targetMonth > 12) {
+        targetYear++;
+        targetMonth -= 12;
+      }
+
+      print('Adjusted target month and year: $targetMonth / $targetYear');
+
+      // Create and return the new DateTime object
+      return DateTime(targetYear, targetMonth, 1);
+      
     }
 
+    void _updateCurrentDate(int index) {
+      setState(() {
+      currentDate = _calculateDate(index);
+      _refreshItems();
+      });
+    }
     // App programming logic ENDS here
 
     // Build setup starts here
@@ -424,131 +434,125 @@ class _HomePageState extends State<HomePage> {
           iconTheme: defaultIconTheme
         ),
       
-        // TODO: Page body
+        // Page body
         body: Column(
-        children: [
-          SizedBox(
-            height: 40,
-            child: PageView.builder(
-              controller: _pageController,
-              onPageChanged: _updateCurrentDate,
-              itemBuilder: (context, index) {
-                int monthDiff = index - initialPage;
-                int adjustedYear = initialDate.year + ((initialDate.month + monthDiff - 1) ~/ 12);
-                int adjustedMonth = ((initialDate.month + monthDiff - 1) % 12) + 1;
+          children: [
+            SizedBox(
+              height: 40,
+              child: PageView.builder(
+                controller: _pageController,
+                onPageChanged: _updateCurrentDate,
+                itemBuilder: (context, index) {
 
-                print('ItemBuilder - Index: $index');
-                print('ItemBuilder - Month Diff: $monthDiff');
-                print('ItemBuilder - Adjusted Year: $adjustedYear');
-                print('ItemBuilder - Adjusted Month: $adjustedMonth');
-
-                String monthName = DateFormat.MMMM('pt_BR').format(DateTime(adjustedYear, adjustedMonth, 1));
-                monthName = '${monthName[0].toUpperCase()}${monthName.substring(1)} de $adjustedYear';
-
-                return Center(
-                  child: GestureDetector(
-                    onHorizontalDragUpdate: (details) {
-                      if (details.delta.dx > 0) {
-                        _pageController.previousPage(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.ease,
-                        );
-                      } else if (details.delta.dx < 0) {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 500),
-                          curve: Curves.ease,
-                        );
-                      }
-                    },
-                    child: Text(
-                      monthName,
-                      style: const TextStyle(fontSize: 20),
+                  DateTime adjustedDate = _calculateDate(index);
+          
+                  String monthName = DateFormat.MMMM('pt_BR').format(adjustedDate);
+                  monthName = '${monthName[0].toUpperCase()}${monthName.substring(1)} de ${adjustedDate.year}';
+          
+                  return Center(
+                    child: GestureDetector(
+                      onHorizontalDragUpdate: (details) {
+                        if (details.delta.dx > 0) {
+                          _pageController.previousPage(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.ease,
+                          );
+                        } else if (details.delta.dx < 0) {
+                          _pageController.nextPage(
+                            duration: const Duration(milliseconds: 500),
+                            curve: Curves.ease,
+                          );
+                        }
+                      },
+                      child: Text(
+                        monthName,
+                        style: const TextStyle(fontSize: 20),
+                      ),
                     ),
-                  ),
-                );
-              },),
-            ),
-            // End of the month swipe setup
-
-            // Balance card setup
-            Card(
-              color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
-              margin: const EdgeInsets.all(10),
-              elevation: 3,
-              child: ListTile(
-                title: Text(
-                  "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
-                  style: const TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
+                  );
+                },),
+              ),
+              // End of the month swipe setup
+          
+              // Balance card setup
+              Card(
+                color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
+                margin: const EdgeInsets.all(10),
+                elevation: 3,
+                child: ListTile(
+                  title: Text(
+                    "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ),
               ),
-            ),
-            // End of the balance card setup 
-
-            const Divider(), // Provides an horizontal separator
-
-            // Items list setup
-            Expanded(
-            child: ListView.builder(
-              itemCount: _events.length,
-              itemBuilder: (_, index) {
-                final currentItem = _events[index];
-                String valueString = currentItem["value"] ?? "0.0";
-                Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
-              return Card(
-                  color: cardColor,
-                  margin: const EdgeInsets.all(10),
-                  elevation: 3,
-                  child: ListTile(
-                    title: Text(
-                      currentItem["name"] ?? "Erro ao retornar o nome",
-                      style: const TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
+              // End of the balance card setup 
+          
+              const Divider(), // Provides an horizontal separator
+          
+              // Items list setup
+              Expanded(
+              child: ListView.builder(
+                itemCount: _events.length,
+                itemBuilder: (_, index) {
+                  final currentItem = _events[index];
+                  String valueString = currentItem["value"] ?? "0.0";
+                  Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
+                return Card(
+                    color: cardColor,
+                    margin: const EdgeInsets.all(10),
+                    elevation: 3,
+                    child: ListTile(
+                      title: Text(
+                        currentItem["name"] ?? "Erro ao retornar o nome",
+                        style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Column(
+                        children: <Widget>[
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text("Data: ${currentItem["date"].toString()}"),
+                          ),
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
+                          ),
+                          Align(
+                            alignment: Alignment.topLeft,
+                            child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
+                          ),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: <Widget>[
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showForm(
+                              context,
+                              currentItem["key"],
+                            ),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _deleteItem(
+                              currentItem["key"],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    subtitle: Column(
-                      children: <Widget>[
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Text("Data: ${currentItem["date"].toString()}"),
-                        ),
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
-                        ),
-                        Align(
-                          alignment: Alignment.topLeft,
-                          child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
-                        ),
-                      ],
-                    ),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: <Widget>[
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => _showForm(
-                            context,
-                            currentItem["key"],
-                          ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () => _deleteItem(
-                            currentItem["key"],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                );
-              },),
-          ),],
-      ),
-      // End of the items list setup
+                  );
+                },),
+            ),],
+          ),
+      // End of the page body
 
       // Creates the floating button
       floatingActionButton: FloatingActionButton(
