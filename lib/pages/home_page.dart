@@ -552,7 +552,7 @@ class _HomePageState extends State<HomePage> {
                 },),
             ),],
           ),
-      // End of the page body
+          // End of the page body
 
       // Creates the floating button
       floatingActionButton: FloatingActionButton(
