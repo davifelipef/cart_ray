@@ -33,9 +33,10 @@ class _HomePageState extends State<HomePage> {
 
   // Date setup variables
   late DateTime currentDate;  
-  late int year;
-  late int month;
-  late int day;
+  late DateTime initialDate;
+  //late int year;
+  //late int month;
+  //late int day;
   late String formattedDate;
 
   // Layout setup variables
@@ -51,24 +52,26 @@ class _HomePageState extends State<HomePage> {
   int _deletedItemCount = 0;
   Timer? _messageTimer;
 
+  static const initialPage = 1200;
+
   // App programming logic STARTS here
   @override
   void initState() {
     super.initState();
     // Date setup
     currentDate = DateTime.now(); // Gets the current date
-    year = currentDate.year; // Gets the current date's year
+    initialDate = currentDate;
+    //_dateController.text = DateFormat('dd/MM/yyyy').format(currentDate);
+    /*year = currentDate.year; // Gets the current date's year
     month = currentDate.month; // Gets the current date's month
-    day = currentDate.day; // Gets the current date's day
+    day = currentDate.day; // Gets the current date's day*/
     formattedDate = DateFormat('dd/MM/yyyy').format(currentDate); // formats the date 
 
     // Sets the initial date as the formatted date
     _dateController.text = formattedDate;
 
-    // Setups the page controller to navigate between months
-    _pageController = PageController(
-      initialPage: currentDate.month - 1,
-    );
+    // Sets up the page starting page
+    _pageController = PageController(initialPage: initialPage);
 
     // Refresh the page
     _refreshItems();
@@ -383,186 +386,191 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       );
+    }
 
-  }
-  // App programming logic ENDS here
+    void _updateCurrentDate(int index) {
+      int monthDiff = index - initialPage;
+      int newYear = initialDate.year + ((initialDate.month + monthDiff - 1) ~/ 12);
+      int newMonth = ((initialDate.month + monthDiff - 1) % 12) + 1;
 
-  // Build setup starts here
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text(
-          "Cart Ray",
-          style: TextStyle(
-            fontSize: 20,
-            color: Colors.black,
-            fontWeight: FontWeight.bold,
+      print("_updateCurrentDate method running...");
+      print('Index: $index');
+      print('Month Diff: $monthDiff');
+      print('New Year: $newYear');
+      print('New Month: $newMonth');
+
+      setState(() {
+        currentDate = DateTime(newYear, newMonth, 1);
+        _refreshItems();
+      });
+    }
+
+    // App programming logic ENDS here
+
+    // Build setup starts here
+    @override
+    Widget build(BuildContext context) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text(
+            "Cart Ray",
+            style: TextStyle(
+              fontSize: 20,
+              color: Colors.black,
+              fontWeight: FontWeight.bold,
+            ),
           ),
+          centerTitle: true,
+          iconTheme: defaultIconTheme
         ),
-        centerTitle: true,
-        iconTheme: defaultIconTheme
-      ),
       
-      // Page body
-body: Column(
-  children: [
-    SizedBox(
-      height: 40,
-      child: PageView.builder(
-        controller: _pageController,
-        onPageChanged: (index) {
-          setState(() {
-            int year = currentDate.year + (index ~/ 12);
-            int month = (index % 12) + 1;
-            
-            // Check if index is negative, and adjust year accordingly
-            if (index < 0) {
-              year--;
-            }
-            
-            // Adjust month and year when reaching boundaries
-            if (month == 0) {
-              month = 12;
-              year--;
-            } else if (month == 13) {
-              month = 1;
-              year++;
-            }
-            
-            currentDate = DateTime(year, month, 1);
-            _refreshItems();
-          });
-        },
-        itemBuilder: (context, index) {
-          int year = currentDate.year + (index ~/ 12);
-          int month = (index % 12) + 1;
-          String monthName = DateFormat.MMMM('pt_BR').format(DateTime(year, month, 1));
-          monthName = '${monthName[0].toUpperCase()}${monthName.substring(1)} de $year';
-          return Center(
-            child: GestureDetector(
-              onHorizontalDragUpdate: (details) {
-                if (details.delta.dx > 0) {
-                  _pageController.previousPage(
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.ease,
-                  );
-                } else if (details.delta.dx < 0) {
-                  _pageController.nextPage(
-                    duration: const Duration(milliseconds: 500),
-                    curve: Curves.ease,
-                  );
-                }
-              },
-              child: Text(
-                monthName,
-                style: const TextStyle(fontSize: 20),
+        // TODO: Page body
+        body: Column(
+        children: [
+          SizedBox(
+            height: 40,
+            child: PageView.builder(
+              controller: _pageController,
+              onPageChanged: _updateCurrentDate,
+              itemBuilder: (context, index) {
+                int monthDiff = index - initialPage;
+                int adjustedYear = initialDate.year + ((initialDate.month + monthDiff - 1) ~/ 12);
+                int adjustedMonth = ((initialDate.month + monthDiff - 1) % 12) + 1;
+
+                print('ItemBuilder - Index: $index');
+                print('ItemBuilder - Month Diff: $monthDiff');
+                print('ItemBuilder - Adjusted Year: $adjustedYear');
+                print('ItemBuilder - Adjusted Month: $adjustedMonth');
+
+                String monthName = DateFormat.MMMM('pt_BR').format(DateTime(adjustedYear, adjustedMonth, 1));
+                monthName = '${monthName[0].toUpperCase()}${monthName.substring(1)} de $adjustedYear';
+
+                return Center(
+                  child: GestureDetector(
+                    onHorizontalDragUpdate: (details) {
+                      if (details.delta.dx > 0) {
+                        _pageController.previousPage(
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.ease,
+                        );
+                      } else if (details.delta.dx < 0) {
+                        _pageController.nextPage(
+                          duration: const Duration(milliseconds: 500),
+                          curve: Curves.ease,
+                        );
+                      }
+                    },
+                    child: Text(
+                      monthName,
+                      style: const TextStyle(fontSize: 20),
+                    ),
+                  ),
+                );
+              },),
+            ),
+            // End of the month swipe setup
+
+            // Balance card setup
+            Card(
+              color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
+              margin: const EdgeInsets.all(10),
+              elevation: 3,
+              child: ListTile(
+                title: Text(
+                  "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
-          );
-        },
-      ),
-    ),
+            // End of the balance card setup 
 
+            const Divider(), // Provides an horizontal separator
 
-            
-                // Balance card setup
-                Card(
-                  color: sumOfEvents() >= 0 ? positiveBalanceBackground : negativeBalanceBackground,
+            // Items list setup
+            Expanded(
+            child: ListView.builder(
+              itemCount: _events.length,
+              itemBuilder: (_, index) {
+                final currentItem = _events[index];
+                String valueString = currentItem["value"] ?? "0.0";
+                Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
+              return Card(
+                  color: cardColor,
                   margin: const EdgeInsets.all(10),
                   elevation: 3,
                   child: ListTile(
                     title: Text(
-                      "Balanço: R\$ ${sumOfEvents().toStringAsFixed(2)}",
+                      currentItem["name"] ?? "Erro ao retornar o nome",
                       style: const TextStyle(
                         fontSize: 15,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                ),
-                const Divider(), // Provides an horizontal separator
-                // Items list setup
-                Expanded(
-                child: ListView.builder(
-                  itemCount: _events.length,
-                  itemBuilder: (_, index) {
-                    final currentItem = _events[index];
-                    String valueString = currentItem["value"] ?? "0.0";
-                    Color cardColor = valueString.contains('-') ? cardRed : cardGreen;
-                  return Card(
-                      color: cardColor,
-                      margin: const EdgeInsets.all(10),
-                      elevation: 3,
-                      child: ListTile(
-                        title: Text(
-                          currentItem["name"] ?? "Erro ao retornar o nome",
-                          style: const TextStyle(
-                            fontSize: 15,
-                            fontWeight: FontWeight.bold,
+                    subtitle: Column(
+                      children: <Widget>[
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: Text("Data: ${currentItem["date"].toString()}"),
+                        ),
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
+                        ),
+                        Align(
+                          alignment: Alignment.topLeft,
+                          child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
+                        ),
+                      ],
+                    ),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: <Widget>[
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => _showForm(
+                            context,
+                            currentItem["key"],
                           ),
                         ),
-                        subtitle: Column(
-                          children: <Widget>[
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: Text("Data: ${currentItem["date"].toString()}"),
-                            ),
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: Text("Tipo de evento: ${currentItem["type"].toString()}"),
-                            ),
-                            Align(
-                              alignment: Alignment.topLeft,
-                              child: Text("Valor: R\$ ${currentItem["value"].toString()}"),
-                            ),
-                          ],
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () => _deleteItem(
+                            currentItem["key"],
+                          ),
                         ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: <Widget>[
-                            IconButton(
-                              icon: const Icon(Icons.edit),
-                              onPressed: () => _showForm(
-                                context,
-                                currentItem["key"],
-                              ),
-                            ),
-                            IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () => _deleteItem(
-                                currentItem["key"],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          // Creates the floating button
-          floatingActionButton: FloatingActionButton(
-            onPressed: () => _showForm(context, null),
-            backgroundColor: primaryButton,
-            foregroundColor: primaryBackground,
-            child: const Icon(Icons.add),
-          ),
-        );
-      }
+                      ],
+                    ),
+                  ),
+                );
+              },),
+          ),],
+      ),
+      // End of the items list setup
 
-      double sumOfEvents() {
-        double total = 0.0;
-        for (final item in _events) {
-          // Retrieve the event value
-          final eventValue = item["value"] ?? "0,00";
-          // Convert the value to a double, replacing commas with dots if necessary
-          final eventsSum = double.tryParse(eventValue.replaceAll(',', '.')) ?? 0.00;
-          // Add the value to the total sum
-          total += eventsSum;
-        }
-        return total;
-      }
+      // Creates the floating button
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showForm(context, null),
+        backgroundColor: primaryButton,
+        foregroundColor: primaryBackground,
+        child: const Icon(Icons.add),
+      ),
+    );
+  }
+
+  // Function that sums the events
+  double sumOfEvents() {
+    double total = 0.0;
+    for (final item in _events) {
+      // Retrieve the event value
+      final eventValue = item["value"] ?? "0,00";
+      // Convert the value to a double, replacing commas with dots if necessary
+      final eventsSum = double.tryParse(eventValue.replaceAll(',', '.')) ?? 0.00;
+      // Add the value to the total sum
+      total += eventsSum;
     }
+    return total;
+  }
+}
