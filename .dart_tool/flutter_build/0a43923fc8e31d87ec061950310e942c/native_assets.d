@@ -1,1 +1,0 @@
- C:\\Users\\davir\\Documents\\Programacao\\cart_ray\\.dart_tool\\flutter_build\\0a43923fc8e31d87ec061950310e942c\\native_assets.yaml: 
