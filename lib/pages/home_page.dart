@@ -36,8 +36,8 @@ class _HomePageState extends State<HomePage> {
   late DateTime initialDate;
   late String formattedDate;
 
-  // Layout setup variables
-  late PageController _pageController;
+  // Layout related variables
+  late PageController _pageController; // Declares the page controller variable
   final defaultIconTheme = const IconThemeData(color: Colors.white);
   final positiveBalanceBackground = Colors.blue.shade100;
   final negativeBalanceBackground = Colors.red.shade100;
@@ -45,28 +45,35 @@ class _HomePageState extends State<HomePage> {
   final primaryBackground = Colors.white;
   final cardGreen = Colors.green.shade100;
   final cardRed = Colors.yellow.shade100;
+  int _deletedItemCount = 0; // Starts the count of deleted messages at zero
+  Timer? _messageTimer; // Declares the timer variable
+  static const initialPage = 1200; // Sets initial page as 1200
 
-  int _deletedItemCount = 0;
-  Timer? _messageTimer;
-
-  static const initialPage = 1200;
-
-  // App programming logic STARTS here
+  // APP PROGRAMMING LOGIC STARTS HERE
   @override
   void initState() {
     super.initState();
-    // Date setup
     currentDate = DateTime.now(); // Gets the current date
-    initialDate = currentDate;
-    _dateController.text = DateFormat('dd/MM/yyyy').format(currentDate);
-    formattedDate = DateFormat('dd/MM/yyyy').format(currentDate); // formats the date 
-
-    // Sets up the page starting page
-    _pageController = PageController(initialPage: initialPage);
-
-    // Refresh the page
-    _refreshItems();
+    initialDate = currentDate; // Auxiliar variable used in the date calculations
+    _dateController.text = DateFormat('dd/MM/yyyy').format(currentDate); // Date controller starts with today
+    formattedDate = DateFormat('dd/MM/yyyy').format(currentDate); // Formats the date according to Brazil's  
+    _pageController = PageController(initialPage: initialPage); // Sets up the page starting page
+    _refreshItems(); // Refresh the page
   }
+
+  // Function that sums the events
+    double sumOfEvents() {
+      double total = 0.0;
+      for (final item in _events) {
+        // Retrieve the event value
+        final eventValue = item["value"] ?? "0,00";
+        // Convert the value to a double, replacing commas with dots if necessary
+        final eventsSum = double.tryParse(eventValue.replaceAll(',', '.')) ?? 0.00;
+        // Add the value to the total sum
+        total += eventsSum;
+      }
+      return total;
+    }
 
   // Updates the screen when a new event is added
   void _refreshItems() {
@@ -82,7 +89,7 @@ class _HomePageState extends State<HomePage> {
       };
     }).toList();
 
-    // Sort the list based on the "dateTime" field in descending order
+    // Sort the list based on the "dateTime" field in descending order - from b to a
     data.sort((a, b) => (b["dateTime"] as DateTime).compareTo(a["dateTime"] as DateTime));
 
     // Sort the list based on the "name" field
@@ -240,7 +247,7 @@ class _HomePageState extends State<HomePage> {
                         lastDate: DateTime(2101), // Set the latest date that can be picked
                       );
 
-                      if (pickedDate != null && pickedDate != tempPickedDate) {
+                      if (pickedDate != tempPickedDate) {
                         setState(() {
                           tempPickedDate = pickedDate;
                           _dateController.text = DateFormat('dd/MM/yyyy').format(tempPickedDate!);
@@ -363,11 +370,10 @@ class _HomePageState extends State<HomePage> {
                           }
                           //Clear the text fields
                           _nameController.text = "";
-                          _dateController.text = formattedDate;
+                          _dateController.text = formattedDate; // Returns the date field to the current date
                           _typeController.text = "";
                           _valueController.text = "";
-                          // Closes the modal window
-                          Navigator.of(context).pop();
+                          Navigator.of(context).pop(); // Closes the modal window
                         }
                       },
                       child: const Text("Salvar"),
@@ -381,43 +387,32 @@ class _HomePageState extends State<HomePage> {
       );
     }
 
-    DateTime _calculateDate(int index) {
-
-      DateTime currentDate = DateTime.now();
-
-      // Calculate the target month and year
-      int targetMonth = currentDate.month + (index - initialPage);
-      int targetYear = currentDate.year;
-
-      print('Starting target month and year: $targetMonth / $targetYear');
-
-      // Adjust the target month and year
-      while (targetMonth <= 0) {
-        targetYear--;
-        targetMonth += 12;
-      }
-
-      while (targetMonth > 12) {
-        targetYear++;
-        targetMonth -= 12;
-      }
-
-      print('Adjusted target month and year: $targetMonth / $targetYear');
-
-      // Create and return the new DateTime object
-      return DateTime(targetYear, targetMonth, 1);
-      
-    }
-
+    // Helper function that updates the current date by calculating the new date based on the index
     void _updateCurrentDate(int index) {
       setState(() {
       currentDate = _calculateDate(index);
-      _refreshItems();
+      _refreshItems(); // Refreshes the items after updating the date
       });
     }
-    // App programming logic ENDS here
 
-    // Build setup starts here
+    // Calculates the target date based on the given index
+    DateTime _calculateDate(int index) {
+      DateTime currentDate = DateTime.now(); // Gets the current date to use in the calculations
+      int targetMonth = currentDate.month + (index - initialPage); // Calculates the target month and year
+      int targetYear = currentDate.year;
+      while (targetMonth <= 0) { // Adjusts the target month and year if it's less than 0 (January)
+        targetYear--; // Subtracts a year
+        targetMonth += 12; // Adds 12 months (Making it December from the previous year)
+      }
+      while (targetMonth > 12) { // Adjusts the target month and year if it's greater than 12 (December)
+        targetYear++; // Adds a year
+        targetMonth -= 12; // Subtracts 12 months (Making it Jannuary of the next year)
+      }
+      return DateTime(targetYear, targetMonth, 1); // Creates and returns the newly DateTime object
+    } 
+    // APP PROGRAMMING LOGIC ENDS HERE
+
+    // BUILD SETUP STARTS HERE
     @override
     Widget build(BuildContext context) {
       return Scaffold(
@@ -443,12 +438,10 @@ class _HomePageState extends State<HomePage> {
                 controller: _pageController,
                 onPageChanged: _updateCurrentDate,
                 itemBuilder: (context, index) {
-
                   DateTime adjustedDate = _calculateDate(index);
-          
                   String monthName = DateFormat.MMMM('pt_BR').format(adjustedDate);
                   monthName = '${monthName[0].toUpperCase()}${monthName.substring(1)} de ${adjustedDate.year}';
-          
+                  // Month and year swipe setup
                   return Center(
                     child: GestureDetector(
                       onHorizontalDragUpdate: (details) {
@@ -471,8 +464,7 @@ class _HomePageState extends State<HomePage> {
                     ),
                   );
                 },),
-              ),
-              // End of the month swipe setup
+              ),// End of the month swipe setup
           
               // Balance card setup
               Card(
@@ -556,25 +548,11 @@ class _HomePageState extends State<HomePage> {
 
       // Creates the floating button
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _showForm(context, null),
+        onPressed: () => _showForm(context, null), // Calls the mentioned function if pressed
         backgroundColor: primaryButton,
         foregroundColor: primaryBackground,
-        child: const Icon(Icons.add),
+        child: const Icon(Icons.add), 
       ),
     );
-  }
-
-  // Function that sums the events
-  double sumOfEvents() {
-    double total = 0.0;
-    for (final item in _events) {
-      // Retrieve the event value
-      final eventValue = item["value"] ?? "0,00";
-      // Convert the value to a double, replacing commas with dots if necessary
-      final eventsSum = double.tryParse(eventValue.replaceAll(',', '.')) ?? 0.00;
-      // Add the value to the total sum
-      total += eventsSum;
-    }
-    return total;
-  }
+  } // BUILD SETUP ENDS HERE
 }
